@@ -4,7 +4,11 @@ import requests
 import os
 import json
 
-from settings import TELEGRAM_BOT_TOKEN, GPT_RELEVANT_QUESTION_SYSTEM_MESSAGE
+from settings import (
+    TELEGRAM_BOT_TOKEN,
+    GPT_RELEVANT_QUESTION_SYSTEM_MESSAGE,
+    GPT_GENERATE_ANSWER_SYSTEM_MESSAGE,
+)
 import api
 
 
@@ -33,10 +37,12 @@ def relevant_documents2(message):
     relevant_questions = ""
     relevant_questions_json = []
     for i in result_json["data"]:
-        relevant_questions_json.append({
-            'Auto_id': i['Auto_id'],
-            'question': i['question'],
-        })
+        relevant_questions_json.append(
+            {
+                "Auto_id": i["Auto_id"],
+                "question": i["question"],
+            }
+        )
         relevant_questions += "Question: " + i["question"] + "\n"
         relevant_questions += "Link: " + i["link"] + "\n"
         if "answer" in i:
@@ -46,7 +52,7 @@ def relevant_documents2(message):
     bot.send_message(message.chat.id, relevant_questions)
     state[message.chat.id]["relevant_questions"] = relevant_questions
     state[message.chat.id]["relevant_questions_json"] = relevant_questions_json
-    if state[message.chat.id]['command'] == "ask_question":
+    if state[message.chat.id]["command"] == "ask_question":
         bot.send_message(
             message.chat.id, "The agent is answering the question..."
         )
@@ -56,7 +62,7 @@ def relevant_documents2(message):
             answer_question,
         )
     else:
-        state[message.chat.id]['command'] = None
+        state[message.chat.id]["command"] = None
 
 
 def answer_question(message):
@@ -66,11 +72,23 @@ def answer_question(message):
         "question": question,
         "relevant_questions": relevant_questions_json,
     }
-    relevant_question_id = api.query_gpt(
+    gpt_answer = api.query_gpt(
         user_message=json.dumps(user_message),
         system_message=GPT_RELEVANT_QUESTION_SYSTEM_MESSAGE,
     )
+    relevant_question_id = json.loads(gpt_answer)["Auto_id"]
     bot.send_message(message.chat.id, relevant_question_id)
+    document = api.specific_document_from_knowledgebase(relevant_question_id)
+    bot.send_message(message.chat.id, str(document)[:200])
+    user_message2 = {
+        "question": question,
+        "relevant_question": document,
+    }
+    gpt_answer = api.query_gpt(
+        user_message=json.dumps(user_message2),
+        system_message=GPT_GENERATE_ANSWER_SYSTEM_MESSAGE,
+    )
+    bot.send_message(message.chat.id, gpt_answer)
 
 
 bot.infinity_polling()

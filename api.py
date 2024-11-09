@@ -48,14 +48,27 @@ def query_gpt(
     llm_model="gpt-4o-mini",
     json_only=False,
     temperature=1,
-) -> int:
+) -> str:
+    """Returns chatgpt message response"""
     answer_json = query_gpt_raw(
         user_message, system_message, llm_model, json_only, temperature
     )
     # TODO - can be there multiple choices?
     # if len(answer_json['choices']) == 1:
-    return json.loads(answer_json['choices'][0]['message']['content'])['Auto_id']
+    return answer_json["choices"][0]["message"]["content"]
     # answer = []
     # for choice in answer_json['choices']:
     #     answer.append(choice['message']['content'])
 
+
+def specific_document_from_knowledgebase(
+    document_id: int, source_id="islamqa"
+) -> dict:
+    url = BACKEND_BASE_URL + api_endpoints.SPECIFIC_DOCUMENT_FROM_KNOWLEDGEBASE
+    params = {
+        "document_id": document_id,
+        "source_id": source_id,
+    }
+    headers = {"x-api-key": BACKEND_API_KEY}
+    response = requests.get(url, params=params, headers=headers)
+    return response.json()['data'][0]
