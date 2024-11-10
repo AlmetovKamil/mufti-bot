@@ -25,12 +25,15 @@ def send_welcome(message):
 
 @bot.message_handler(commands=["relevant_documents", "ask_question"])
 def relevant_documents1(message: types.Message):
+    if message.chat.id not in state:
+        state[message.chat.id] = {}
     state[message.chat.id]["command"] = message.text.strip("/")
     bot.send_message(message.chat.id, "Please, ask your question:")
     bot.register_next_step_handler(message, relevant_documents2)
 
 
 def relevant_documents2(message):
+    bot.send_chat_action(message.chat.id, "typing")
     message_text = message.text
     state[message.chat.id]["question"] = message_text
     result_json = api.relevant_documents(message_text)
@@ -53,19 +56,13 @@ def relevant_documents2(message):
     state[message.chat.id]["relevant_questions"] = relevant_questions
     state[message.chat.id]["relevant_questions_json"] = relevant_questions_json
     if state[message.chat.id]["command"] == "ask_question":
-        bot.send_message(
-            message.chat.id, "The agent is answering the question..."
-        )
-        bot.send_message(message.chat.id, "(Now this is not implemented)")
-        bot.register_next_step_handler(
-            message,
-            answer_question,
-        )
+        answer_question(message)
     else:
         state[message.chat.id]["command"] = None
 
 
 def answer_question(message):
+    bot.send_chat_action(message.chat.id, "typing")
     question = state[message.chat.id]["question"]
     relevant_questions_json = state[message.chat.id]["relevant_questions_json"]
     user_message = {
@@ -77,9 +74,22 @@ def answer_question(message):
         system_message=GPT_RELEVANT_QUESTION_SYSTEM_MESSAGE,
     )
     relevant_question_id = json.loads(gpt_answer)["Auto_id"]
-    bot.send_message(message.chat.id, relevant_question_id)
     document = api.specific_document_from_knowledgebase(relevant_question_id)
-    bot.send_message(message.chat.id, str(document)[:200])
+    document_for_print = document.copy()
+    document_for_print["answer"] = document_for_print["answer"][:1000]
+    bot.send_message(
+        message.chat.id,
+        f"Here is the most relevant question from the database (id={relevant_question_id})",
+    )
+    bot.send_message(
+        message.chat.id,
+        json.dumps(
+            document_for_print,
+            indent=4,
+            ensure_ascii=False,
+        )[:4096],
+    )
+    bot.send_chat_action(message.chat.id, "typing")
     user_message2 = {
         "question": question,
         "relevant_question": document,
@@ -89,6 +99,7 @@ def answer_question(message):
         system_message=GPT_GENERATE_ANSWER_SYSTEM_MESSAGE,
     )
     bot.send_message(message.chat.id, gpt_answer)
+    state[message.chat.id]["command"] = None
 
 
 bot.infinity_polling()

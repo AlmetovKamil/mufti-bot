@@ -33,6 +33,8 @@ You need to  choose exactly one of them and write only its id on the following f
 }
 <<id>> is the id you have chosen.
 
+If no question is relevant, put -1.
+
 # DOs AND DONTs
 - Choose the most relevant question only among provided relevant questions.
 - Write the answer only in the specified format
@@ -63,6 +65,15 @@ Where <<question>> is the question that is being asked,
 
 You need to answer the question that is being asked based on the most relevant question.
 
+There can be a situation, when there is no relevant questions. In such a case you will receive the following json:
+
+{
+    "question": <<question>>,
+    "relevant_question": -1,
+}
+
+In this situation, instead of the answer, you should write that there is no relevant questions in our database, 
+and you cannot answer the question.
 
 # DOs AND DONTs
 - Don't make things up, use only the information that you obtained from the most relevant question.
