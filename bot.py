@@ -114,7 +114,7 @@ def answer_question(message):
         user_message=json.dumps(user_message2),
         system_message=GPT_GENERATE_ANSWER_FROM_RELEVANT_QUESTIONS_SYSTEM_MESSAGE,
     )
-    bot.send_message(message.chat.id, gpt_answer)
+    bot.send_message(message.chat.id, gpt_answer, parse_mode="Markdown",)
     state[message.chat.id]["command"] = None
 
 
