@@ -6,8 +6,8 @@ import json
 
 from settings import (
     TELEGRAM_BOT_TOKEN,
-    GPT_RELEVANT_QUESTION_SYSTEM_MESSAGE,
-    GPT_GENERATE_ANSWER_SYSTEM_MESSAGE,
+    GPT_SELECT_RELEVANT_QUESTIONS_SYSTEM_MESSAGE,
+    GPT_GENERATE_ANSWER_FROM_RELEVANT_QUESTIONS_SYSTEM_MESSAGE,
 )
 import api
 
@@ -71,32 +71,48 @@ def answer_question(message):
     }
     gpt_answer = api.query_gpt(
         user_message=json.dumps(user_message),
-        system_message=GPT_RELEVANT_QUESTION_SYSTEM_MESSAGE,
+        system_message=GPT_SELECT_RELEVANT_QUESTIONS_SYSTEM_MESSAGE,
     )
-    relevant_question_id = json.loads(gpt_answer)["Auto_id"]
-    document = api.specific_document_from_knowledgebase(relevant_question_id)
-    document_for_print = document.copy()
-    document_for_print["answer"] = document_for_print["answer"][:1000]
-    bot.send_message(
-        message.chat.id,
-        f"Here is the most relevant question from the database (id={relevant_question_id})",
-    )
-    bot.send_message(
-        message.chat.id,
-        json.dumps(
-            document_for_print,
-            indent=4,
-            ensure_ascii=False,
-        )[:4096],
-    )
+    relevant_question_ids = json.loads(gpt_answer)["Auto_ids"]
+    
+    if not relevant_question_ids:
+        bot.send_message(
+            message.chat.id,
+            "No relevant questions found in the database."
+        )
+        state[message.chat.id]["command"] = None
+        return
+    
+    documents = []
+    for question_id in relevant_question_ids:
+        document = api.specific_document_from_knowledgebase(question_id)
+        documents.append(document)
+    
+    # Send a summary of relevant documents
+    for doc in documents:
+        document_for_print = doc.copy()
+        document_for_print["answer"] = document_for_print["answer"][:1000]
+        bot.send_message(
+            message.chat.id,
+            f"Relevant question from the database (id={doc['Auto_id']})",
+        )
+        bot.send_message(
+            message.chat.id,
+            json.dumps(
+                document_for_print,
+                indent=4,
+                ensure_ascii=False,
+            )[:4096],
+        )
+    
     bot.send_chat_action(message.chat.id, "typing")
     user_message2 = {
         "question": question,
-        "relevant_question": document,
+        "relevant_questions": documents,
     }
     gpt_answer = api.query_gpt(
         user_message=json.dumps(user_message2),
-        system_message=GPT_GENERATE_ANSWER_SYSTEM_MESSAGE,
+        system_message=GPT_GENERATE_ANSWER_FROM_RELEVANT_QUESTIONS_SYSTEM_MESSAGE,
     )
     bot.send_message(message.chat.id, gpt_answer)
     state[message.chat.id]["command"] = None
