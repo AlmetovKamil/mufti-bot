@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y git && apt-get install -y nano && apt-g
 
 RUN pip install -r requirements.txt
 
-ADD bot.py .
+COPY . .
 
-CMD python3 ./bot.py
+# Set the entry point or command
+CMD ["python3", "bot.py"]
