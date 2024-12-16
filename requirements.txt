@@ -1,2 +1,2 @@
 pytelegrambotapi==4.23.0
-dotenv
+dotenv==0.0.5
