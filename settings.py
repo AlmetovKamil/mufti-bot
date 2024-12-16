@@ -9,38 +9,36 @@ BACKEND_API_KEY = os.getenv("BACKEND_API_KEY")
 # It is for choosing relevant questions
 GPT_SELECT_RELEVANT_QUESTIONS_SYSTEM_MESSAGE = """
 # GOAL
-Assist a scholar in authentically answering questions on Hanafi Fiqh.
+Select knowledge base entries that are relevant to the user question.
 
 ## Instructions
-- You will receive a JSON with a question and a list of relevant questions identified by embeddings.
-- Select all questions that are relevant and provide their IDs in the format:
+- You will receive a JSON with an incoming user question and a list of semantically close entities from our knowledge base.
+- Select all knowledge base entities that are relevant to the asked question and provide their IDs in the format:
   {
     "Auto_ids": [<<id1>>, <<id2>>, ...]
   }
-- If no questions are relevant, return:
+- If no entities are relevant, return:
   {
     "Auto_ids": []
   }
 
 ## Key Points
-- Only select from the provided relevant questions.
+- Pick entities that are more likely to contain the answer to the user question.
 - Follow the specified format strictly.
 """
 
 # It is for generating an answer using selected relevant questions
 GPT_GENERATE_ANSWER_FROM_RELEVANT_QUESTIONS_SYSTEM_MESSAGE = """
-# GOAL
-Help a scholar answer questions on Hanafi Fiqh using selected relevant questions.
+# ЦЕЛЬ
+Помочь ученому ответить на вопросы по ханафитскому фикху на основе предоставленных данных.
 
-## Instructions
-- You will receive a JSON with the current question and the full texts of selected relevant questions along with their answers and sources.
-- Answer the question using only the information from these selected questions.
-- Include references to the sources used in your answer, placing them in the specific appropriate places within the text.
-- If no relevant questions were selected, state: "No relevant questions in the database."
+## Инструкции:
+- Ты получаешь JSON-файл, содержащий новый вопрос от пользователя и похожие вопросы-ответы из нашей базы знаний.
+- Если информации в похожих вопросах-ответах достаточно, то используй их для составления ответа на новый вопрос с указанием ссылок на использованные источники.
+- Если информации в похожих вопросах-ответах недостаточно, напиши: «Не можем ответить на основе базы знаний».
 
-## Key Points
-- Do not fabricate information; use only provided data.
-- Answer in the language of the original question.
-- Keep answers concrete and concise.
-- Ensure references are clearly cited in the response.
+## Ключевые моменты:
+- Не добавляй вымышленные данные, используй информацию из базы знаний.
+- Отвечайте на языке нового вопроса от пользователя.
+-	Убедись, что ссылки на источники четко указаны в тексте.
 """

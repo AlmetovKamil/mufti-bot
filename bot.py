@@ -20,7 +20,7 @@ state = {}
 @bot.message_handler(commands=["start", "help"])
 def send_welcome(message):
     state[message.chat.id] = {}
-    bot.reply_to(message, "This bot is mufti helper bot")
+    bot.reply_to(message, "Этот бот - помощник муфтия-ханафита.")
 
 
 @bot.message_handler(commands=["relevant_documents", "ask_question"])
@@ -28,7 +28,7 @@ def relevant_documents1(message: types.Message):
     if message.chat.id not in state:
         state[message.chat.id] = {}
     state[message.chat.id]["command"] = message.text.strip("/")
-    bot.send_message(message.chat.id, "Please, ask your question:")
+    bot.send_message(message.chat.id, "Пожалуста, напишите свой вопрос:")
     bot.register_next_step_handler(message, relevant_documents2)
 
 
@@ -46,18 +46,18 @@ def relevant_documents2(message):
                 "question": i["question"],
             }
         )
-        relevant_questions += "Question: " + i["question"] + "\n"
+        relevant_questions += "Question: " + i["question"] + ". "
         relevant_questions += "Link: " + i["link"] + "\n"
         if "answer" in i:
             relevant_questions += "Answer: " + i["answer"] + "\n"
         relevant_questions += "\n"
-    bot.send_message(message.chat.id, "Here is the relevant questions:")
-    bot.send_message(message.chat.id, relevant_questions)
+    bot.send_message(message.chat.id, "Нашел похожие вопросы из базы знаний, сейчас попробую отработать.")
     state[message.chat.id]["relevant_questions"] = relevant_questions
     state[message.chat.id]["relevant_questions_json"] = relevant_questions_json
     if state[message.chat.id]["command"] == "ask_question":
         answer_question(message)
     else:
+        bot.send_message(message.chat.id, relevant_questions)
         state[message.chat.id]["command"] = None
 
 
@@ -88,22 +88,15 @@ def answer_question(message):
         document = api.specific_document_from_knowledgebase(question_id)
         documents.append(document)
     
-    # Send a summary of relevant documents
-    for doc in documents:
-        document_for_print = doc.copy()
-        document_for_print["answer"] = document_for_print["answer"][:1000]
-        bot.send_message(
-            message.chat.id,
-            f"Relevant question from the database (id={doc['Auto_id']})",
-        )
-        bot.send_message(
-            message.chat.id,
-            json.dumps(
-                document_for_print,
-                indent=4,
-                ensure_ascii=False,
-            )[:4096],
-        )
+    # Send the list of chosen relevant questions
+    relevant_question_titles = "\n".join(
+        [f"Question: {doc['question']}\nLink: {doc['link']}\n" for doc in documents]
+    )
+
+    bot.send_message(
+        message.chat.id,
+        "Вот эти вопросы были выбраны как наиболее релевантные:\n" + relevant_question_titles
+    )
     
     bot.send_chat_action(message.chat.id, "typing")
     user_message2 = {
